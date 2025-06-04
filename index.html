@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>QR 登録フォーム</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      max-width: 500px;
+      margin: auto;
+    }
+    label {
+      display: block;
+      margin-bottom: 15px;
+    }
+    input, button {
+      padding: 10px;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    #reader {
+      margin-top: 20px;
+    }
+  </style>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+
+  <h2>現場登録フォーム</h2>
+
+  <label>担当者名:
+    <input type="text" id="tanto" placeholder="例: 山田">
+  </label>
+
+  <label>QRコード:
+    <input type="text" id="qr-result" readonly>
+  </label>
+
+  <button onclick="startScanner()">📷 QR読み取り</button>
+  <div id="reader" style="width: 100%;"></div>
+
+  <script>
+    // 担当者名の保存と復元
+    window.onload = () => {
+      const savedTanto = localStorage.getItem("tanto");
+      if (savedTanto) {
+        document.getElementById("tanto").value = savedTanto;
+      }
+    }
+
+    document.getElementById("tanto").addEventListener("input", (e) => {
+      localStorage.setItem("tanto", e.target.value);
+    });
+
+    // QRコードスキャン機能
+    let html5QrCode;
+    function startScanner() {
+      const qrRegion = document.getElementById("reader");
+      qrRegion.innerHTML = ""; // 初期化
+      html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        qrCodeMessage => {
+          document.getElementById("qr-result").value = qrCodeMessage;
+          html5QrCode.stop();
+        },
+        errorMessage => {
+          // 読み取りエラー時も無視してOK
+        }
+      ).catch(err => {
+        alert("カメラ起動に失敗しました: " + err);
+      });
+    }
+  </script>
+</body>
+</html>
