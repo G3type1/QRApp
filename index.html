@@ -121,7 +121,7 @@
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64data = reader.result.split(',')[1];
-        fetch("https://script.google.com/macros/s/AKfycbym97j3-KwVrBAY_HnEDpQ7KUWjbCl5zRg4p1SpFtaGoNAzsenY5HwGLoBxDdaQq2zs/exec", {
+        fetch("https://script.google.com/macros/s/AKfycbz8POkwdboNQBIGUBec55IlQiltkss-TpQPYL-8w52r-vAXYjk3da3DsR3eqvqRN115/exec", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
