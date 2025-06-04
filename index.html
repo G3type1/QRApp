@@ -36,7 +36,7 @@
 </head>
 <body>
 
-  <div id="version-label">ver.1.1.1</div>
+  <div id="version-label">ver.1.1.2</div>
 
   <h2>現場登録フォーム</h2>
 
@@ -123,7 +123,7 @@
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64data = reader.result.split(',')[1];
-        fetch("https://script.google.com/macros/s/AKfycbzTpxfoQ-6XZnPhBwqAtZFaUoBqFb-4kR1DMUGh6U5fL1MI80MeMZylGj3UfOFDpuA/exec", {
+        fetch("https://script.google.com/macros/s/AKfycby8YNVTmTJI1-IoEKFDMOb2uT8VqRNFTtpUdMruiqr9nUp3u5G7Ofhm6mEjJs6itV2k/exec", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
