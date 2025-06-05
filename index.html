@@ -1,22 +1,38 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>現場登録フォーム</title>
+
+  <!-- ✅ QR読み取りライブラリ（最新版） -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.7/minified/html5-qrcode.min.js"></script>
+
   <style>
     html, body {
-      margin: 0; padding: 0;
-      width: 100% !important;
+      width: 100%;
+      margin: 0;
+      padding: 0;
       overflow-x: hidden;
+      font-family: sans-serif;
       -webkit-text-size-adjust: 100%;
     }
+
     body {
-      font-family: sans-serif;
-      padding: 10px;
-      box-sizing: border-box;
-      max-width: 600px;
+      padding: 10px 15px;
+      max-width: 500px;
       margin: auto;
     }
+
+    @media screen and (min-width: 481px) {
+      body { max-width: 500px; }
+    }
+
+    label {
+      display: block;
+      margin-bottom: 15px;
+    }
+
     input, button {
       width: 100%;
       font-size: 18px;
@@ -24,23 +40,42 @@
       box-sizing: border-box;
       margin-bottom: 15px;
     }
+
+    #reader, #photo-preview {
+      margin-top: 20px;
+      max-width: 100%;
+    }
+
+    video {
+      width: 100% !important;
+      height: auto !important;
+      object-fit: cover;
+      transform: scaleX(-1); /* iOS反転防止（環境により外してもOK） */
+    }
+
+    .section-break {
+      margin-top: 30px;
+    }
+
+    #version {
+      text-align: right;
+      font-size: 12px;
+      color: gray;
+    }
   </style>
 </head>
 
 <body>
-
-  <div id="version" style="text-align: right; font-size: 12px; color: gray;">
-  バージョン: 1.0.2
-</div>
+  <div id="version">バージョン: 1.1.0</div>
 
   <h2>現場登録フォーム</h2>
 
   <label>担当者名:
-    <input type="text" id="tanto" placeholder="例: 山田">
+    <input type="text" id="tanto" placeholder="例: 山田" />
   </label>
 
   <label>QRコード:
-    <input type="text" id="qr" readonly>
+    <input type="text" id="qr" readonly />
   </label>
   <button onclick="startScanner()">📷 QR読み取り</button>
   <div id="reader" style="width: 100%;"></div>
@@ -49,7 +84,7 @@
 
   <label>写真:</label>
   <button onclick="document.getElementById('photo').click()">📸 写真を撮る</button>
-  <input type="file" id="photo" accept="image/*" capture="environment" style="display: none;">
+  <input type="file" id="photo" accept="image/*" capture="environment" style="display: none;" />
   <img id="photo-preview" src="" alt="" style="display: none;" />
 
   <div class="section-break"></div>
@@ -57,23 +92,42 @@
   <button onclick="send()">📤 送信する</button>
 
   <script>
-    let html5QrCode;
+  let html5QrCode;
 
-    function startScanner() {
+  async function startScanner() {
   const qrRegion = document.getElementById("reader");
-  qrRegion.innerHTML = ""; // ← これ重要（前のカメラ止める）
+  qrRegion.innerHTML = "";
+
   html5QrCode = new Html5Qrcode("reader");
-  html5QrCode.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 250 },
-    qrMessage => {
-      document.getElementById("qr").value = qrMessage;
-      html5QrCode.stop(); // ← 読み取り終わったらカメラ止める
-    },
-    error => {} // エラー無視
-  ).catch(err => alert("カメラ起動に失敗: " + err));
+
+  try {
+    const devices = await Html5Qrcode.getCameras();
+    if (devices.length === 0) {
+      alert("カメラが見つかりません！");
+      return;
+    }
+
+    // 背面カメラっぽいものがあれば優先、それ以外は先頭
+    const backCamera = devices.find(d => d.label.toLowerCase().includes("back")) || devices[0];
+
+    await html5QrCode.start(
+      { deviceId: { exact: backCamera.id } },
+      { fps: 10, qrbox: 250 },
+      qrMessage => {
+        document.getElementById("qr").value = qrMessage;
+        html5QrCode.stop();
+      },
+      error => {
+        // 読み取り失敗時（無視してOK）
+      }
+    );
+  } catch (err) {
+    alert("カメラ起動に失敗: " + err);
+  }
 }
 
+    
+    // 写真プレビュー表示
     document.getElementById("photo").addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (file) {
@@ -86,7 +140,7 @@
       }
     });
 
-    // ページ読み込み時に担当者を復元
+    // 担当者名をローカル保存
     window.addEventListener("DOMContentLoaded", () => {
       const savedTanto = localStorage.getItem("tanto");
       if (savedTanto) {
@@ -94,51 +148,50 @@
       }
     });
 
+    // 送信処理
     function send() {
-  const sendButton = document.querySelector("button[onclick='send()']");
-  sendButton.disabled = true;
-  sendButton.textContent = "送信中...";
+      const sendButton = document.querySelector("button[onclick='send()']");
+      sendButton.disabled = true;
+      sendButton.textContent = "送信中...";
 
-  const tanto = document.getElementById("tanto").value;
-  const qr = document.getElementById("qr").value;
-  const file = document.getElementById("photo").files[0];
+      const tanto = document.getElementById("tanto").value;
+      const qr = document.getElementById("qr").value;
+      const file = document.getElementById("photo").files[0];
 
-  if (!tanto || !qr || !file) {
-    alert("すべて入力してね！");
-    sendButton.disabled = false;
-    sendButton.textContent = "📤 送信する";
-    return;
-  }
+      if (!tanto || !qr || !file) {
+        alert("すべて入力してね！");
+        sendButton.disabled = false;
+        sendButton.textContent = "📤 送信する";
+        return;
+      }
 
-  localStorage.setItem("tanto", tanto);
+      localStorage.setItem("tanto", tanto);
 
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    const base64 = reader.result.split(',')[1];
-    const qrValue = document.getElementById("qr").value;  // QRの値を先に保存
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result.split(',')[1];
 
-  google.script.run.withSuccessHandler((res) => {
-    if (res.result === "OK") {
-      alert("アップロード成功！");
-    } else {
-      alert("エラー: " + res.message);
+        google.script.run.withSuccessHandler((res) => {
+          if (res.result === "OK") {
+            alert("アップロード成功！");
+          } else {
+            alert("エラー: " + res.message);
+          }
+
+          // フォーム初期化
+          document.getElementById("qr").value = "";
+          document.getElementById("photo").value = "";
+          const preview = document.getElementById("photo-preview");
+          preview.src = "";
+          preview.style.display = "none";
+
+          sendButton.disabled = false;
+          sendButton.textContent = "📤 送信する";
+        }).uploadData(tanto, qr, base64, `photo_${Date.now()}.jpg`);
+      };
+
+      reader.readAsDataURL(file);
     }
-
-    // ✅ QRコード・写真クリア処理
-    document.getElementById("qr").value = "";
-    const photoInput = document.getElementById("photo");
-    photoInput.value = "";
-    const previewImg = document.getElementById("photo-preview");
-    previewImg.src = "";
-    previewImg.style.display = "none";
-
-    // ✅ 成功でも失敗でも、ボタンを元に戻す
-    sendButton.disabled = false;
-    sendButton.textContent = "📤 送信する";
-  }).uploadData(tanto, qrValue, base64, `photo_${Date.now()}.jpg`);
-};
-reader.readAsDataURL(file);
-}
   </script>
 </body>
 </html>
