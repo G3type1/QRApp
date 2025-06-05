@@ -66,7 +66,7 @@
 </head>
 
 <body>
-  <div id="version">バージョン: 1.1.0</div>
+  <div id="version">バージョン: 1.1.2</div>
 
   <h2>現場登録フォーム</h2>
 
@@ -101,31 +101,44 @@
   html5QrCode = new Html5Qrcode("reader");
 
   try {
+    // Androidの一部では先にアクセス許可しないと getCameras が失敗する
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    stream.getTracks().forEach(track => track.stop()); // ← 一旦カメラを止める（確認だけ）
+
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     const devices = await Html5Qrcode.getCameras();
     if (devices.length === 0) {
       alert("カメラが見つかりません！");
       return;
     }
 
-    // 背面カメラっぽいものがあれば優先、それ以外は先頭
-    const backCamera = devices.find(d => d.label.toLowerCase().includes("back")) || devices[0];
-
-    await html5QrCode.start(
-      { deviceId: { exact: backCamera.id } },
-      { fps: 10, qrbox: 250 },
-      qrMessage => {
-        document.getElementById("qr").value = qrMessage;
-        html5QrCode.stop();
-      },
-      error => {
-        // 読み取り失敗時（無視してOK）
-      }
-    );
+    if (isIOS) {
+      const backCam = devices.find(d => d.label.toLowerCase().includes("back")) || devices[0];
+      await html5QrCode.start(
+        { deviceId: { exact: backCam.id } },
+        { fps: 10, qrbox: 250 },
+        qrMessage => {
+          document.getElementById("qr").value = qrMessage;
+          html5QrCode.stop();
+        },
+        error => {}
+      );
+    } else {
+      // Androidなら facingMode 確実
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        qrMessage => {
+          document.getElementById("qr").value = qrMessage;
+          html5QrCode.stop();
+        },
+        error => {}
+      );
+    }
   } catch (err) {
-    alert("カメラ起動に失敗: " + err);
+    alert("カメラ起動に失敗しました：" + err.message);
   }
 }
-
     
     // 写真プレビュー表示
     document.getElementById("photo").addEventListener("change", (e) => {
